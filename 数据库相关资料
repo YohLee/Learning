@@ -1,0 +1,4 @@
+MySQL数据库使用mysqldump导出数据详解
+转自：http://www.cnblogs.com/crazylqy/p/5779042.html
+命令行导出表数据为文件
+mysqldump -uroot -proot --databases db1 --tables a1 --where='id=1' >/tmp/a1.sql
