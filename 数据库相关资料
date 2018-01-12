@@ -1,4 +1,76 @@
-MySQL数据库使用mysqldump导出数据详解
+gpload,MySQL数据库使用mysqldump导出数据详解
 转自：http://www.cnblogs.com/crazylqy/p/5779042.html
 命令行导出表数据为文件
 mysqldump -uroot -proot --databases db1 --tables a1 --where='id=1' >/tmp/a1.sql
+
+//gpload 将csv文件导入greenplum
+https://stackoverflow.com/questions/41588332/greenplum-gpload-last-error-extra-data-after-last-expected-column
+
+配置文件一：依据csv文件跟目标表字段 依据mapping 插入需要插入的字段
+
+VERSION: 1.0.0.1 
+DATABASE: gpadmin
+USER: gpadmin
+HOST: gpdbsne
+PORT: 5432
+GPLOAD:
+   INPUT:
+    - SOURCE:
+    LOCAL_HOSTNAME:
+      - gpdbsne
+    PORT: 8999
+    FILE:
+      - /home/gpadmin/testfile.txt
+    - FORMAT: text 
+    - DELIMITER: '|'
+    - QUOTE: '"'
+    - COLUMNS:            ---注释----COLUMNS可以不要
+       - col1: text
+       - col2: text
+       - col3: text
+       - col4: text
+       - col5: text
+   OUTPUT:
+     - TABLE: public.test
+     - MODE: insert 
+     - MAPPING:
+           col1: col1
+           col2: col2
+           
+           
+           
+ 配置文件二：csv文件列数，yml文件columns 需要一样
+ 
+ VERSION: 1.0.0.1
+DATABASE: Test
+USER: gpadmin
+HOST: 192.168.23.128
+PORT: 5432
+GPLOAD:
+   INPUT:
+    - SOURCE:
+         LOCAL_HOSTNAME:
+           - mdw
+         PORT: 8181
+         FILE:
+           - /home/admin/member_delta.txt
+    - COLUMNS:
+               - mever_id: varchar(54)
+               - phoneno: varchar(20)
+               - action: char(1)
+               - dw_ins_date: date
+    - FORMAT: csv
+    - DELIMITER: ','
+    - QUOTE: '"'
+    - HEADER: true
+    - ERROR_LIMIT: 25
+    - ERROR_TABLE: public.member_err
+   OUTPUT:
+    - TABLE: public.member_delta
+    - MODE: INSERT
+ 
+ 
+           
+           
+           
+        
