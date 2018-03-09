@@ -39,7 +39,7 @@ GPLOAD:
            
            
            
- 配置文件二：csv文件列数，yml文件columns 需要一样
+ 配置文件二：csv文件列数，yml文件columns 需要一样,顺序也必须一样
  
  VERSION: 1.0.0.1
 DATABASE: Test
