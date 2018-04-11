@@ -1,0 +1,29 @@
+postgresql中如何Kill掉正在执行的SQL语句
+
+kill方式是杀掉进程，但是有时候需要取消相关SQL语句，采用以下方式：
+
+查看哪些SQL语句正在执行，语句如下：
+
+SELECT datname,procpid,query_start, current_query,waiting,client_addr FROM pg_stat_activity WHERE waiting='t';
+
+说明：
+
+datname表示数据库名
+
+procpid表示当前的SQL对应的PID
+
+query_start表示SQL执行开始时间
+
+current_query表示当前执行的SQL语句
+
+waiting表示是否正在执行，t表示正在执行，f表示已经执行完成
+
+client_addr表示客户端IP地址
+
+kill有两种方式，第一种是：
+SELECT pg_cancel_backend(PID);
+这种方式只能kill select查询，对update、delete 及DML不生效)
+
+第二种是：
+SELECT pg_terminate_backend(PID);
+这种可以kill掉各种操作(select、update、delete、drop等)操作
