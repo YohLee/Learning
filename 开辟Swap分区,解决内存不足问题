@@ -1,0 +1,61 @@
+一、前言
+
+在用kettle的rest client控件发送http请求调用java接口时遇到内存不足的问题，如下
+Java HotSpot(TM) 64-Bit Server VM warning: INFO: os::commit_memory(0x00007f6bedbe0000, 65536, 1) failed; error='无法分配内存' (errno=12)
+#
+# There is insufficient memory for the Java Runtime Environment to continue.
+# Native memory allocation (mmap) failed to map 65536 bytes for committing reserved memory.
+# An error report file with more information is saved as:
+# /home/dap/apache-tomcat-8.5.23/bin/hs_err_pid4597.log
+#
+# Compiler replay data is saved as:
+那么遇到此类问题该如何解决呢？
+
+二、开辟Swap分区
+
+Windows内存不足，可以直接开虚拟分区。Linux也是相似的道理。Linux下跑程序的时候，如果内存不足了，那么程序会使用swap分区，我们无法轻易更改内存大小，但是swap分区是可控的，所以可以从这里下手。
+
+1.内存查看：
+
+我们可以使用如下指令查看内存和Swap分区的使用情况：
+free -h
+————————————————————————————————————————————————————————————————————————————————
+               total        used        free      shared  buff/cache   available
+Mem:           7.6G        3.1G        259M        196M        4.2G        4.0G
+Swap:          0           0           0 
+————————————————————————————————————————————————————————————————————————————————
+由此可见Swap分区大小为0，创建Swap分区后
+free -h
+————————————————————————————————————————————————————————————————————————————————
+               total        used        free      shared  buff/cache   available
+Mem:           7.6G        3.1G        259M        196M        4.2G        4.0G
+Swap:          7.9G        22M         7.9G 
+————————————————————————————————————————————————————————————————————————————————
+注：如果Swap对应的userd值一直发生变化，且值越大，说明严重缺内存
+
+2.使用硬盘创建
+
+如果我们的硬盘空间够用，那么就可以使用硬盘创建我们的分区。
+
+创建分区文件，大小为1G，步骤如下：
+
+cd /DISKB
+mkdir swap-file
+cd swap-file/
+dd if=/dev/zero of=/DISKB/swap-file/swapfile bs=1M count=1024000
+
+生成 swap 文件系统：
+mkswap ./swapfile
+	
+激活 swap 文件：
+swapon ./swapfile
+
+
+这样，我们就实现了临时挂在swap分区，如果想重启的时候也自动挂在swap分区，可以修改/etc/fstab文件，添加内容如下：
+/DISKB/swap-file/swapfile/swapfile          swap            swap    defaults        0 0
+
+
+这样每次重启系统的时候就会自动加载 swap 文件了
+
+查看有没有创建swap文件
+cat /proc/swaps
