@@ -27,3 +27,8 @@ SELECT pg_cancel_backend(PID);
 第二种是：
 SELECT pg_terminate_backend(PID);
 这种可以kill掉各种操作(select、update、delete、drop等)操作
+
+
+
+--------sql优化
+http://www.jasongj.com/2015/03/07/Join1/
