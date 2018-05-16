@@ -32,3 +32,7 @@ SELECT pg_terminate_backend(PID);
 
 --------sql优化
 http://www.jasongj.com/2015/03/07/Join1/
+
+-------copy postgresql
+COPY src.src_oss_perflog_t_term_vsim_mr(terType,mnc,createTime,userName,rssi,lac,transTimes,mvnoId,csRegStatus,band,sessionId,latitude,_id,triggerTime,orgId,imei,powerCap,sigQuality,longitude,accessId,ueTxPower,
+psRegStatus,imeiAccessId,sigStrength,mcc,cellId,uploadTime,rat,imsi) FROM '/home/t_term_vsim_mr.csv' DELIMITER ',' CSV HEADER;
