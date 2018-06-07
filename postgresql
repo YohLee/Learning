@@ -36,3 +36,67 @@ http://www.jasongj.com/2015/03/07/Join1/
 -------copy postgresql
 COPY src.src_oss_perflog_t_term_vsim_mr(terType,mnc,createTime,userName,rssi,lac,transTimes,mvnoId,csRegStatus,band,sessionId,latitude,_id,triggerTime,orgId,imei,powerCap,sigQuality,longitude,accessId,ueTxPower,
 psRegStatus,imeiAccessId,sigStrength,mcc,cellId,uploadTime,rat,imsi) FROM '/home/t_term_vsim_mr.csv' DELIMITER ',' CSV HEADER;
+
+
+
+
+###############greenplum创建分区表##########
+CREATE TABLE "ods"."ods_oss_system_t_speed_detectresult" (
+"_id" varchar(120),
+"acttype" numeric(20,4),
+"createtime" date,
+"downloadbyte" numeric(20,4),
+"downloadtime" numeric(20,4),
+"imei" varchar(256),
+"imsi" varchar(256),
+"lac" numeric(20,4),
+"plmn" varchar(256),
+"rat" numeric(20,4),
+"sessionid" varchar(256),
+"starttype" numeric(20,4),
+"state" varchar(256),
+"strength" numeric(20,4),
+"uploadtime" numeric(32,4),
+"url" varchar(256),
+"usercode" varchar(256),
+"loaddate" timestamp DEFAULT now()
+)
+WITH (appendonly=true, compresslevel=5) DISTRIBUTED BY (_id) PARTITION BY RANGE(createtime)
+       (
+    PARTITION ods_oss_system_t_speed_detectresult_p201801 START ('2010-01-01'::date) END ('2018-02-01'::date) WITH (tablename='ods_oss_system_t_speed_detectresult_p201801', orientation=row ,appendonly=true,compresslevel=5),
+	PARTITION ods_oss_system_t_speed_detectresult_p201802 START ('2018-02-01'::date) END ('2018-03-01'::date) WITH (tablename='ods_oss_system_t_speed_detectresult_p201802', orientation=row ,appendonly=true,compresslevel=5),
+	PARTITION ods_oss_system_t_speed_detectresult_p201803 START ('2018-03-01'::date) END ('2018-04-01'::date) WITH (tablename='ods_oss_system_t_speed_detectresult_p201803', orientation=row ,appendonly=true,compresslevel=5),	
+	PARTITION ods_oss_system_t_speed_detectresult_p201804 START ('2018-04-01'::date) END ('2018-05-01'::date) WITH (tablename='ods_oss_system_t_speed_detectresult_p201804', orientation=row ,appendonly=true,compresslevel=5),
+	PARTITION ods_oss_system_t_speed_detectresult_p201805 START ('2018-05-01'::date) END ('2018-06-01'::date) WITH (tablename='ods_oss_system_t_speed_detectresult_p201805', orientation=row ,appendonly=true,compresslevel=5),
+	PARTITION ods_oss_system_t_speed_detectresult_p201806 START ('2018-06-01'::date) END ('2018-07-01'::date) WITH (tablename='ods_oss_system_t_speed_detectresult_p201806', orientation=row ,appendonly=true,compresslevel=5),
+	PARTITION ods_oss_system_t_speed_detectresult_p201807 START ('2018-07-01'::date) END ('2018-08-01'::date) WITH (tablename='ods_oss_system_t_speed_detectresult_p201807', orientation=row ,appendonly=true,compresslevel=5),
+	PARTITION ods_oss_system_t_speed_detectresult_p201808 START ('2018-08-01'::date) END ('2018-09-01'::date) WITH (tablename='ods_oss_system_t_speed_detectresult_p201808', orientation=row ,appendonly=true,compresslevel=5),
+	PARTITION ods_oss_system_t_speed_detectresult_p201809 START ('2018-09-01'::date) END ('2018-10-01'::date) WITH (tablename='ods_oss_system_t_speed_detectresult_p201809', orientation=row ,appendonly=true,compresslevel=5),
+	PARTITION ods_oss_system_t_speed_detectresult_p201810 START ('2018-10-01'::date) END ('2018-11-01'::date) WITH (tablename='ods_oss_system_t_speed_detectresult_p201810', orientation=row ,appendonly=true,compresslevel=5),	
+	PARTITION ods_oss_system_t_speed_detectresult_p201811 START ('2018-11-01'::date) END ('2018-12-01'::date) WITH (tablename='ods_oss_system_t_speed_detectresult_p201811', orientation=row ,appendonly=true,compresslevel=5),		  
+    PARTITION ods_oss_system_t_speed_detectresult_p201812 START ('2018-12-01'::date) END ('2019-01-01'::date) WITH (tablename='ods_oss_system_t_speed_detectresult_p201812', orientation=row ,appendonly=true,compresslevel=5)
+       );
+	
+		  
+		 
+CREATE TABLE "ods"."ods_oss_system_t_terminal_flow_count_day" (
+"_id" varchar(120),
+"c_mvnoid" varchar(256),
+"c_orgid" varchar(256),
+"cardtotal" numeric(32,4),
+"counttime" numeric(32,4),
+"imei" numeric(32,4),
+"imsi" varchar(256),
+"iso2" varchar(256),
+"t_mvnoid" varchar(256),
+"t_orgid" varchar(256),
+"total" numeric(32,4),
+"u_mvnoid" varchar(256),
+"u_orgid" varchar(256),
+"usercode" varchar(256),
+"usertotal" numeric(32,4),
+"loaddate" timestamp DEFAULT now(),
+"datetime" date
+)
+DISTRIBUTED BY (_id) PARTITION BY RANGE(datetime)
+(START (TIMESTAMP '2018-01-01 00:00:00') INCLUSIVE END (TIMESTAMP '2020-01-01 00:00:00') EXCLUSIVE EVERY (INTERVAL '1 month'), DEFAULT PARTITION outlying_dates);
