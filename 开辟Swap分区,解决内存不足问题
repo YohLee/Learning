@@ -59,3 +59,28 @@ swapon ./swapfile
 
 查看有没有创建swap文件
 cat /proc/swaps
+
+
+
+
+ls: 读取目录 .: 输入/输出错误 错误处理
+
+
+
+1，推测原因：磁盘老化导致坏道，异常操作导致文件node错乱、文件损坏等
+2，修复方法：软件修复，单不能保证修复所有的错误。修复后如果一段时间内再次发生，请考虑磁盘质量问题。
+
+
+修复过程:
+1, df -TH #记录目标磁盘的类型，如ext2、ext3.记录挂在盘和挂在目录。如:/dev/sda3 /disk3
+2, umount /dev/sda3  #取消挂载，如提示设备忙，请执行:  fuser -km /dev/sda3
+3, fsck -t ext2 -y /dev/sda3#修复。"ext2"是第一步查看的磁盘类型。
+4, mount /dev/sda3 /disk3/  #完成挂载
+5, reboot #建议重启。
+
+
+
+
+
+
+
