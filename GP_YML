@@ -1,0 +1,54 @@
+VERSION: 1.0.0.1
+DATABASE: bigdata
+USER: gpadmin
+PASSWORD: 123456
+HOST: 10.17.5.6
+PORT: 5432
+GPLOAD:
+   INPUT:
+    - SOURCE:
+         LOCAL_HOSTNAME:
+           - 10.17.5.7
+         PORT_RANGE: [8000, 9000]
+         FILE:
+           - /data/dumpdata/metadata/add/oms/order_pay.csv
+    - MAX_LINE_LENGTH: 10485760
+    - FORMAT: csv
+    - DELIMITER: ','
+    - QUOTE: '"'
+    - COLUMNS:
+       - createtime: date 
+       - feetype: varchar(50) 
+       - id: numeric(50) 
+       - impldate: varchar(50) 
+       - impluserid: varchar(50) 
+       - implusername: varchar(50)  
+       - updatetime: date 
+    - HEADER: true
+    - ERROR_LIMIT: 25
+    - ERROR_TABLE: src.member_err
+   OUTPUT:
+     - TABLE: ods.ods_oms_order_pay
+     - MODE: merge
+     - MATCH_COLUMNS:
+                    - id
+     - UPDATE_COLUMNS:
+                   - createtime 
+                   - feetype 
+                   - impldate 
+                   - impluserid 
+                   - implusername 
+                   - updatetime              
+     - MAPPING:
+           createtime: createTime
+           feetype: feeType
+           id: id
+           impldate: implDate
+           impluserid: implUserId
+           implusername: implUserName
+           updatetime: updateTime      
+   PRELOAD:
+    - TRUNCATE: false
+    - REUSE_TABLES: false
+   SQL:
+    - AFTER: "update ods.ods_oms_order_pay set updatetime='2018-01-26' where updatetime='NULL'"
