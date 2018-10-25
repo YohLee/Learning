@@ -1,0 +1,311 @@
+package com.task;
+
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+
+import com.mysql.jdbc.Connection;
+
+public class TimsiDiffRecTask {
+	private String url =Keys.url;
+	//private String url ="jdbc:mysql://5.4.12.6:192/login_history?characterEncoding=utf-8";
+	private String username = Keys.username;
+	private String password = Keys.password;
+	
+	//css数据库
+	private String url_newc =Keys.url_css;
+	private String username_newc = Keys.username_css;
+	private String password_newc = Keys.password_css;
+	
+	public void task() throws Exception {
+		Class.forName("com.mysql.jdbc.Driver");
+		//新架构当前数据
+		HashSet<String> set = new HashSet<>();
+		
+		//脱卡IMSI
+		HashSet<String> set1 = new HashSet<>();
+		
+		//脱卡IMSI总数
+		HashSet<String> set2 = new HashSet<>();
+		
+		//更新解决脱卡时间
+		List<HashMap<String, String>> list = new ArrayList<>();
+
+		//脱卡IMSI总数
+		Connection conn_ = null;
+		ResultSet rt_ = null;
+		PreparedStatement pst_ = null;
+
+		String sql_ = " select  imsi from t_css_vsim where slot_status = 1 ";
+		try {
+			conn_ = (Connection) DriverManager.getConnection(url_newc, username_newc, password_newc);
+			pst_ = conn_.prepareStatement(sql_);
+			rt_ = pst_.executeQuery();
+			if (rt_ != null) {
+				while (rt_.next()) {
+					set2.add(rt_.getString("imsi"));
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (rt_ != null)
+				rt_.close();
+			if (pst_ != null)
+				pst_.close();
+			if (conn_ != null)
+				conn_.close();
+		}
+		
+		
+		//查询上次保存的数据
+		Connection conn = null;
+		ResultSet rt = null;
+		PreparedStatement pst = null;
+
+		String sql = " select imsi from t_imsi_diff_rec where type = 0 ";
+		try {
+			conn = (Connection) DriverManager.getConnection(url, username, password);
+			pst = conn.prepareStatement(sql);
+			rt = pst.executeQuery();
+			if (rt != null) {
+				while (rt.next()) {
+					for(String s :set2){
+						if(rt.getString("imsi").equals(s)){
+							set1.add(s);
+							break;
+						}
+					}
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (rt != null)
+				rt.close();
+			if (pst != null)
+				pst.close();
+			if (conn != null)
+				conn.close();
+		}
+		
+		//查询当前数据
+		Connection conn_new = null;
+		ResultSet rt_new = null;
+		PreparedStatement pst_new = null;
+
+		String sql_new = " select DISTINCT(imsi) as imsi from t_css_vsim where slot_status = 0 and available_status = 0 ";
+		try {
+			conn_new = (Connection) DriverManager.getConnection(url_newc, username_newc, password_newc);
+			pst_new = conn_new.prepareStatement(sql_new);
+			rt_new = pst_new.executeQuery();
+			if (rt_new != null) {
+				while (rt_new.next()) {
+					set.add(rt_new.getString("imsi"));
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (rt_new != null)
+				rt_new.close();
+			if (pst_new != null)
+				pst_new.close();
+			if (conn_new != null)
+				conn_new.close();
+		}
+		String recordtime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+		
+		//脱卡恢复更新恢复时间
+		if(getList().size() > 0){
+			for(HashMap<String, String> m: getList()){
+				int flag = 0;
+				for(String s :set2){
+					if(s.equals(m.get("imsi"))){
+						flag = 1;
+						break;
+					}
+				}
+				
+				if( flag == 0){
+					list.add(m);
+				}
+			}
+		}
+		
+		
+		//保存数据
+		if(set.size()>0){
+			Connection conn_i = null;
+			try {
+				conn_i = (Connection) DriverManager.getConnection(url, username, password);
+				conn_i.setAutoCommit(false);
+				Statement stm = conn_i.createStatement();
+				
+				stm.executeUpdate("delete from t_imsi_diff_rec where type = 0 ; ");
+				
+				String sql_i = "";
+				
+				//插入打点的数据
+				for (String m : set) {
+					sql_i = " insert into t_imsi_diff_rec (recordtime,imsi,type) values ('"
+							+ recordtime + "','" + m+ "',0)";
+					stm.executeUpdate(sql_i);
+				}
+				
+				//更新已恢复的脱绑卡
+				if(list.size()>0){
+					for(HashMap<String, String> map :list){
+						sql_i = " update t_imsi_diff_rec set updatetime ='"+recordtime+"' where id =  "+map.get("id");
+						stm.executeUpdate(sql_i);
+					}
+					
+				}
+				
+				//存储当前的脱绑卡
+				for (String m : set1) {
+					sql_i = " insert into t_imsi_diff_rec (recordtime,imsi,type) values ('"
+							+ recordtime + "','" + m+ "',1)";
+					stm.executeUpdate(sql_i);
+				}
+				
+				conn_i.commit();
+				conn_i.setAutoCommit(true);
+				stm.close();
+			} catch (Exception e) {
+				conn_i.rollback();// 回滚事物
+				e.printStackTrace();
+				conn_i.close();// 关闭连接
+			} finally {
+
+				if (conn_i != null)
+					conn_i.close();
+			}
+		}
+		
+		//更新出现的次数
+		dealNum();
+	}
+		
+	public Date v_day(Date time, int i) throws ParseException {
+		Calendar c = Calendar.getInstance();
+		c.setTime(time);
+		c.add(Calendar.DAY_OF_MONTH, i);
+		Date t = new Date();
+		t.setTime(c.getTimeInMillis());
+		return t;
+	}
+	
+	//获取未更新的脱绑卡
+	public List<HashMap<String, String>> getList() throws Exception {
+		
+		List<HashMap<String, String>> list = new ArrayList<>();
+		//查询上次保存的数据
+		Connection conn = null;
+		ResultSet rt = null;
+		PreparedStatement pst = null;
+
+		String sql = " select id,imsi from t_imsi_diff_rec where type = 1 and updatetime is null ";
+		try {
+			conn = (Connection) DriverManager.getConnection(url, username, password);
+			pst = conn.prepareStatement(sql);
+			rt = pst.executeQuery();
+			if (rt != null) {
+				while (rt.next()) {
+					HashMap<String, String> m = new HashMap<>();
+					m.put("imsi", rt.getString("imsi"));
+					m.put("id", rt.getString("id"));
+					list.add(m);
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (rt != null)
+				rt.close();
+			if (pst != null)
+				pst.close();
+			if (conn != null)
+				conn.close();
+		}
+		return list;
+	}
+	
+	public void dealNum() throws Exception {
+		
+		List<HashMap<String, String>> list = new ArrayList<>();
+		//查询上次保存的数据
+		Connection conn = null;
+		ResultSet rt = null;
+		PreparedStatement pst = null;
+
+		String sql = " select t.id, " + 
+				"case when t1.mw_num is null then 1 " + 
+				"else (t1.mw_num + 1) end w_num " + 
+				" from ( " + 
+				" select * from t_imsi_diff_rec where type = 1 and w_num  = 0 " + 
+				") t LEFT JOIN " + 
+				"( select imsi,max(w_num) as mw_num from  t_imsi_diff_rec " + 
+				"where type = 1 and w_num > 0  " + 
+				"GROUP BY imsi ) t1 on t.imsi = t1.imsi ";
+		try {
+			conn = (Connection) DriverManager.getConnection(url, username, password);
+			pst = conn.prepareStatement(sql);
+			rt = pst.executeQuery();
+			if (rt != null) {
+				while (rt.next()) {
+					HashMap<String, String> m = new HashMap<>();
+					m.put("id", rt.getString("id"));
+					m.put("w_num", rt.getString("w_num"));
+					list.add(m);
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (rt != null)
+				rt.close();
+			if (pst != null)
+				pst.close();
+			if (conn != null)
+				conn.close();
+		}
+		
+		if(list.size()>0){
+			
+			Connection conn_i = null;
+			try {
+				conn_i = (Connection) DriverManager.getConnection(url, username, password);
+				conn_i.setAutoCommit(false);
+				Statement stm = conn_i.createStatement();
+				String sql_ = "";
+				for (HashMap<String, String> m : list) {
+					sql_ = " update t_imsi_diff_rec set w_num = "+m.get("w_num") +" where id = "+m.get("id");
+					stm.executeUpdate(sql_);
+				}
+				conn_i.commit();
+				conn_i.setAutoCommit(true);
+				stm.close();
+			} catch (Exception e) {
+				conn_i.rollback();// 回滚事物
+				e.printStackTrace();
+				conn_i.close();// 关闭连接
+			} finally {
+
+				if (conn_i != null)
+					conn_i.close();
+			}
+	}
+		
+	}
+	
+}
