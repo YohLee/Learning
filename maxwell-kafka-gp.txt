@@ -1,0 +1,156 @@
+https://hashdatainc.github.io/bireme/docs/bireme_guide_zh-cn.html
+
+
+
+---------------------------------mysql------------
+配置my.cnf文件
+[mysqld]
+server-id=1
+log-bin=master
+binlog_format=row
+
+
+
+
+
+
+
+-------------------------kafaka-------------------
+1、/home/user/realTimeStream/kafka_2.11-2.0.0/config下server.properties配置
+
+
+broker.id=1
+
+host.name=10.1.75.27
+num.network.threads=3
+num.io.threads=8
+socket.send.buffer.bytes=102400
+socket.receive.buffer.bytes=102400
+socket.request.max.bytes=104857600
+
+log.dirs=/tmp/kafka-logs
+num.partitions=1
+num.recovery.threads.per.data.dir=1
+offsets.topic.replication.factor=1
+transaction.state.log.replication.factor=1
+transaction.state.log.min.isr=1
+
+log.retention.hours=168
+log.segment.bytes=1073741824
+log.retention.check.interval.ms=300000
+zookeeper.connect=10.1.75.27:2181,10.1.75.28:2781,10.1.75.29:2781
+zookeeper.connection.timeout.ms=60000
+
+
+2、创建topic
+bin/kafka-topics.sh --create --zookeeper 10.1.75.27:2181--replication-factor 3 --partitions 1 --topic maxwell 
+
+3、启动kafaka
+bin/kafka-server-start.sh config/server.properties 
+
+
+
+
+
+
+
+---------------------------------maxwell-------------------------
+1、/home/user/realTimeStream/maxwell-1.18.0/config下config.properties配置
+log_level=info
+producer=kafka
+
+host=127.0.0.1
+#user=azkaban
+#password=azkaban
+
+user=root
+password=123456
+
+port=3106
+
+
+
+
+replication_host=10.1.75.27
+replication_user=slave
+replication_password=123456
+replication_port=3106
+init_position=410898
+
+kafka.bootstrap.servers=10.1.75.27:9092
+kafka_topic=maxwell
+ddl_kafka_topic=maxwell_ddl
+kafka.compression.type=snappy
+kafka.retries=0
+kafka.acks=1
+
+2、启动maxwell
+./maxwell --config=/home/user/realTimeStream/maxwell-1.18.0/config/config.properties
+
+
+
+
+
+
+
+------------------------------bireme------------------------
+1、/home/user/realTimeStream/bireme-1.0.0/etc下config.properties配置
+# target database where the data will sync into.
+target.url = jdbc:postgresql://10.1.75.27:5432/postgres
+target.user = gpadmin
+target.passwd = gpadmin
+
+# data source name list, separated by comma.
+data_source = maxwell1
+
+# data source "mysql1" type
+maxwell1.type = maxwell
+# kafka server which maxwell write binlog into.
+maxwell1.kafka.server = 10.1.75.27:9092
+# kafka topic which maxwell write binlog into.
+maxwell1.kafka.topic = maxwell
+# kafka groupid used for consumer.
+maxwell1.kafka.groupid = bireme
+
+# data source "debezium1"
+#debezium1.type = debezium
+# kafka server which debezium write into.
+#debezium1.kafka.server = 127.0.0.1:9092 
+# kafka groupid used for consumer.
+#debezium1.kafka.groupid = bireme
+
+# application performance monitor report type: "none", "console", "jmx"
+metrics.reporter=none
+# interval of console APM reporter.
+metrics.reporter.console.interval = 10
+
+# JDBC connection pool size of target database.
+loader.conn_pool.size = 10
+# queue size of task for each table which is waiting for load.
+loader.task_queue.size = 2
+
+# number of threads used to transform data source record into target format.
+transform.thread_pool.size = 10
+
+# number of threads used to generate load tasks.
+merge.thread_pool.size = 10
+# interval of generating a load task in milliseconds.
+merge.interval = 10000
+# max tuple size for a load task
+merge.batch.size = 50000
+
+# set the IP address for bireme state server.
+state.server.addr = 0.0.0.0
+# set the port for bireme state server.
+state.server.port = 8080
+
+
+2、/home/user/realTimeStream/bireme-1.0.0/etc下maxwell1.properties配置
+# source table full name = target table full name
+demo.test = public.test
+#demo.table2 = public.table2
+
+
+
+3、启动
+bin/bireme start
