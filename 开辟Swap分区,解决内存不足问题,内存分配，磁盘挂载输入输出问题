@@ -42,7 +42,7 @@ Swap:          7.9G        22M         7.9G
 cd /DISKB
 mkdir swap-file
 cd swap-file/
-dd if=/dev/zero of=/DISKB/swap-file/swapfile bs=1M count=1024000
+dd if=/dev/zero of=/DISKB/swap-file/swapfile bs=1M count=1024
 
 生成 swap 文件系统：
 mkswap ./swapfile
